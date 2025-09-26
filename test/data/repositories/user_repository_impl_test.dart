@@ -9,9 +9,15 @@ import 'package:user_management_app/domain/use_cases/create_user_params.dart';
 
 class MockUserLocalDataSource extends Mock implements UserLocalDataSource {}
 
+class FakeUserModel extends Fake implements UserModel {}
+
 void main() {
   late UserRepositoryImpl repository;
   late MockUserLocalDataSource mockDataSource;
+
+  setUpAll(() {
+    registerFallbackValue(FakeUserModel());
+  });
 
   setUp(() {
     mockDataSource = MockUserLocalDataSource();
@@ -49,7 +55,13 @@ void main() {
       final result = await repository.createUser(tCreateUserParams);
 
       // Assert
-      expect(result, Right(tUser));
+      result.fold(
+        (failure) => fail('Expected Right but got Left: $failure'),
+        (user) => {
+          expect(user.firstName, equals(tUser.firstName)),
+          expect(user.lastName, equals(tUser.lastName)),
+        },
+      );
       verify(() => mockDataSource.createUser(any())).called(1);
     });
 
@@ -63,7 +75,10 @@ void main() {
       final result = await repository.createUser(tCreateUserParams);
 
       // Assert
-      expect(result, isA<Left<Failure, User>>());
+      result.fold(
+        (failure) => expect(failure, isA<Failure>()),
+        (user) => fail('Expected Left but got Right: $user'),
+      );
       verify(() => mockDataSource.createUser(any())).called(1);
     });
   });

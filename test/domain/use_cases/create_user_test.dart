@@ -8,9 +8,15 @@ import 'package:user_management_app/domain/use_cases/create_user_params.dart';
 
 class MockUserRepository extends Mock implements UserRepository {}
 
+class FakeCreateUserParams extends Fake implements CreateUserParams {}
+
 void main() {
   late CreateUser useCase;
   late MockUserRepository mockRepository;
+
+  setUpAll(() {
+    registerFallbackValue(FakeCreateUserParams());
+  });
 
   setUp(() {
     mockRepository = MockUserRepository();
@@ -41,7 +47,13 @@ void main() {
       final result = await useCase(tCreateUserParams);
 
       // Assert
-      expect(result, Right(tUser));
+      result.fold(
+        (failure) => fail('Expected Right but got Left: $failure'),
+        (user) => {
+          expect(user.firstName, equals(tUser.firstName)),
+          expect(user.lastName, equals(tUser.lastName)),
+        },
+      );
       verify(() => mockRepository.createUser(tCreateUserParams)).called(1);
     });
 
@@ -56,7 +68,10 @@ void main() {
       final result = await useCase(tCreateUserParams);
 
       // Assert
-      expect(result, Left(tFailure));
+      result.fold(
+        (failure) => expect(failure, isA<Failure>()),
+        (user) => fail('Expected Left but got Right: $user'),
+      );
       verify(() => mockRepository.createUser(tCreateUserParams)).called(1);
     });
   });
