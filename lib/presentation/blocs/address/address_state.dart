@@ -56,3 +56,30 @@ class AddressError extends AddressState {
   @override
   List<Object?> get props => [message];
 }
+
+class CountriesLoaded extends AddressState {
+  final List<Country> countries;
+
+  const CountriesLoaded(this.countries);
+
+  @override
+  List<Object?> get props => [countries];
+}
+
+class DepartmentsLoaded extends AddressState {
+  final List<Department> departments;
+
+  const DepartmentsLoaded(this.departments);
+
+  @override
+  List<Object?> get props => [departments];
+}
+
+class MunicipalitiesLoaded extends AddressState {
+  final List<Municipality> municipalities;
+
+  const MunicipalitiesLoaded(this.municipalities);
+
+  @override
+  List<Object?> get props => [municipalities];
+}

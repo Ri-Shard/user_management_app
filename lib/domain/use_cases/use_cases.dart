@@ -7,3 +7,6 @@ export 'add_address.dart';
 export 'get_user_addresses.dart';
 export 'update_address.dart';
 export 'delete_address.dart';
+export 'get_countries.dart';
+export 'get_departments_by_country.dart';
+export 'get_municipalities_by_department.dart';

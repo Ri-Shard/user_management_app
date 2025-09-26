@@ -52,3 +52,28 @@ class RefreshAddresses extends AddressEvent {
   @override
   List<Object?> get props => [userId];
 }
+
+class LoadCountries extends AddressEvent {
+  const LoadCountries();
+
+  @override
+  List<Object?> get props => [];
+}
+
+class LoadDepartments extends AddressEvent {
+  final String countryId;
+
+  const LoadDepartments(this.countryId);
+
+  @override
+  List<Object?> get props => [countryId];
+}
+
+class LoadMunicipalities extends AddressEvent {
+  final String departmentId;
+
+  const LoadMunicipalities(this.departmentId);
+
+  @override
+  List<Object?> get props => [departmentId];
+}

@@ -8,6 +8,7 @@ import 'package:user_management_app/presentation/blocs/address/address_state.dar
 import 'package:user_management_app/presentation/pages/home_screen.dart';
 import 'package:user_management_app/presentation/widgets/custom_button.dart';
 import 'package:user_management_app/presentation/widgets/custom_text_field.dart';
+import 'package:user_management_app/presentation/widgets/custom_dropdown.dart';
 import 'package:user_management_app/presentation/widgets/loading_widget.dart';
 
 class AddAddressScreen extends StatefulWidget {
@@ -21,17 +22,32 @@ class AddAddressScreen extends StatefulWidget {
 
 class _AddAddressScreenState extends State<AddAddressScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _countryController = TextEditingController();
-  final _departmentController = TextEditingController();
-  final _municipalityController = TextEditingController();
   final _streetController = TextEditingController();
   final _additionalInfoController = TextEditingController();
 
+  // Variables para manejar las selecciones
+  Country? _selectedCountry;
+  Department? _selectedDepartment;
+  Municipality? _selectedMunicipality;
+
+  // Listas para los dropdowns
+  List<Country> _countries = [];
+  List<Department> _departments = [];
+  List<Municipality> _municipalities = [];
+
+  @override
+  void initState() {
+    super.initState();
+    // Cargar países al inicializar con un delay para asegurar que el bloc esté listo
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<AddressBloc>().add(const LoadCountries());
+      }
+    });
+  }
+
   @override
   void dispose() {
-    _countryController.dispose();
-    _departmentController.dispose();
-    _municipalityController.dispose();
     _streetController.dispose();
     _additionalInfoController.dispose();
     super.dispose();
@@ -75,11 +91,37 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
                 backgroundColor: Colors.red,
               ),
             );
+          } else if (state is CountriesLoaded) {
+            setState(() {
+              _countries = state.countries;
+              // Auto-seleccionar Colombia si solo hay un país
+              if (state.countries.length == 1) {
+                _selectedCountry = state.countries.first;
+                // Cargar departamentos automáticamente
+                context.read<AddressBloc>().add(
+                  LoadDepartments(_selectedCountry!.id),
+                );
+              }
+            });
+          } else if (state is DepartmentsLoaded) {
+            setState(() {
+              _departments = state.departments;
+              _municipalities =
+                  []; // Limpiar municipios cuando cambian departamentos
+              _selectedMunicipality = null;
+            });
+          } else if (state is MunicipalitiesLoaded) {
+            setState(() {
+              _municipalities = state.municipalities;
+            });
           }
         },
         child: BlocBuilder<AddressBloc, AddressState>(
           builder: (context, state) {
-            if (state is AddressLoading) {
+            if (state is AddressLoading &&
+                state is! CountriesLoaded &&
+                state is! DepartmentsLoaded &&
+                state is! MunicipalitiesLoaded) {
               return const LoadingWidget(message: 'Guardando dirección...');
             }
 
@@ -134,30 +176,70 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
   Widget _buildFormFields() {
     return Column(
       children: [
-        CustomTextField(
+        // País (solo Colombia - deshabilitado)
+        CustomDropdown<Country>(
           label: 'País',
-          hint: 'Ej: Colombia',
-          controller: _countryController,
-          validator: Validators.validateCountry,
-          prefixIcon: const Icon(Icons.public),
+          hint: 'Colombia',
+          value: _selectedCountry,
+          items: _countries,
+          itemBuilder: (country) => country.name,
+          onChanged: (country) {}, // Deshabilitado
+          prefixIcon: Icons.public,
+          validator: (value) =>
+              null, // No validar ya que está auto-seleccionado
         ),
         const SizedBox(height: 16),
-        CustomTextField(
+
+        // Dropdown de Departamento
+        CustomDropdown<Department>(
           label: 'Departamento',
-          hint: 'Ej: Cundinamarca',
-          controller: _departmentController,
-          validator: Validators.validateDepartment,
-          prefixIcon: const Icon(Icons.location_city),
+          hint: 'Selecciona un departamento',
+          value: _selectedDepartment,
+          items: _departments,
+          itemBuilder: (department) => department.name,
+          onChanged: (department) {
+            setState(() {
+              _selectedDepartment = department;
+              _selectedMunicipality = null;
+              _municipalities = [];
+            });
+            if (department != null) {
+              context.read<AddressBloc>().add(
+                LoadMunicipalities(department.id),
+              );
+            }
+          },
+          prefixIcon: Icons.location_city,
+          validator: (value) =>
+              value == null ? 'Selecciona un departamento' : null,
+          isLoading: _departments.isEmpty,
         ),
         const SizedBox(height: 16),
-        CustomTextField(
+
+        // Dropdown de Municipio
+        CustomDropdown<Municipality>(
           label: 'Municipio',
-          hint: 'Ej: Bogotá',
-          controller: _municipalityController,
-          validator: Validators.validateMunicipality,
-          prefixIcon: const Icon(Icons.home),
+          hint: _selectedDepartment == null
+              ? 'Primero selecciona un departamento'
+              : 'Selecciona un municipio',
+          value: _selectedMunicipality,
+          items: _municipalities,
+          itemBuilder: (municipality) => municipality.name,
+          onChanged: _selectedDepartment == null
+              ? (municipality) {}
+              : (municipality) {
+                  setState(() {
+                    _selectedMunicipality = municipality;
+                  });
+                },
+          prefixIcon: Icons.home,
+          validator: (value) =>
+              value == null ? 'Selecciona un municipio' : null,
+          isLoading: _selectedDepartment != null && _municipalities.isEmpty,
         ),
         const SizedBox(height: 16),
+
+        // Campo de texto para la dirección
         CustomTextField(
           label: 'Dirección',
           hint: 'Ej: Calle 123 #45-67',
@@ -166,6 +248,8 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
           prefixIcon: const Icon(Icons.place),
         ),
         const SizedBox(height: 16),
+
+        // Campo de texto para información adicional
         CustomTextField(
           label: 'Información Adicional (Opcional)',
           hint: 'Ej: Apartamento 201, Torre A',
@@ -223,9 +307,9 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
       final address = Address(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         userId: widget.userId,
-        country: _countryController.text.trim(),
-        department: _departmentController.text.trim(),
-        municipality: _municipalityController.text.trim(),
+        country: _selectedCountry!.name,
+        department: _selectedDepartment!.name,
+        municipality: _selectedMunicipality!.name,
         street: _streetController.text.trim(),
         additionalInfo: _additionalInfoController.text.trim().isEmpty
             ? null
@@ -237,9 +321,13 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
   }
 
   void _clearForm() {
-    _countryController.clear();
-    _departmentController.clear();
-    _municipalityController.clear();
+    setState(() {
+      _selectedCountry = null;
+      _selectedDepartment = null;
+      _selectedMunicipality = null;
+      _departments = [];
+      _municipalities = [];
+    });
     _streetController.clear();
     _additionalInfoController.clear();
   }

@@ -30,6 +30,10 @@ class AppBlocProvider extends StatelessWidget {
             addAddress: getIt<use_cases.AddAddress>(),
             updateAddress: getIt<use_cases.UpdateAddress>(),
             deleteAddress: getIt<use_cases.DeleteAddress>(),
+            getCountries: getIt<use_cases.GetCountries>(),
+            getDepartmentsByCountry: getIt<use_cases.GetDepartmentsByCountry>(),
+            getMunicipalitiesByDepartment:
+                getIt<use_cases.GetMunicipalitiesByDepartment>(),
           ),
         ),
       ],
