@@ -114,7 +114,7 @@ lib/
 
 1. **Clonar el repositorio**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/Ri-Shard/user_management_app.git
    cd user_management_app
    ```
 
