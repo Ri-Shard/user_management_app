@@ -174,12 +174,6 @@ El proyecto utiliza `flutter_lints` con reglas estrictas:
 - Detección de código no utilizado
 - Verificación de tipos nulos
 
-### Estructura de Commits
-- `feat:` Nuevas funcionalidades
-- `fix:` Corrección de bugs
-- `refactor:` Mejoras de código
-- `docs:` Documentación
-- `test:` Casos de prueba
 
 ## 📊 Métricas de Calidad
 
